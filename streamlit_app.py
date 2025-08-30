@@ -105,7 +105,6 @@ if not event_df.empty:
             numeric_series = event_df[col].dropna().apply(extract_leading_number)
             avg_val = round(numeric_series.mean(), 2) if not numeric_series.empty else ""
             results.append({
-                "Event": selected_event,
                 "Question": col,
                 "Metric": "Average",
                 "Value": avg_val
@@ -117,7 +116,6 @@ if not event_df.empty:
             all_text = " ".join(event_df[col].dropna().astype(str))
             summary = summarize_text_one_sentence(all_text)
             results.append({
-                "Event": selected_event,
                 "Question": col,
                 "Metric": "Summary",
                 "Value": summary
@@ -129,7 +127,6 @@ if not event_df.empty:
             all_text = " ".join(event_df[col].dropna().astype(str))
             themes = extract_themes_with_counts(all_text)
             results.append({
-                "Event": selected_event,
                 "Question": col,
                 "Metric": "Themes",
                 "Value": themes
