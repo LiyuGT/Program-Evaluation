@@ -3,11 +3,7 @@ import streamlit as st
 import pandas as pd
 import openai
 import os
-from pyairtable import Table
 from pyairtable import Api
-from datetime import datetime
-import io
-import csv
 
 # ============ CONFIG ============
 AIRTABLE_PERSONAL_TOKEN = os.getenv("AIRTABLE_PERSONAL_TOKEN")
@@ -71,25 +67,25 @@ event_df = table_df[table_df["Events"] == selected_event]
 if not event_df.empty:
     st.subheader(f"📌 Summary for: {selected_event}")
 
-    # ---- Numeric averages ----
-    numeric_cols = event_df.select_dtypes(include="number").columns
-    if len(numeric_cols) > 0:
-        avg_scores = event_df[numeric_cols].mean().round(2)
-        st.write("### 📈 Average Scores")
-        st.dataframe(avg_scores)
+    # Limit to Questions 1–10
+    question_cols = [col for col in event_df.columns if col.startswith("Question") and any(col.startswith(f"Question {i}") for i in range(1, 11))]
 
-    # ---- Text summaries and themes ----
-    text_cols = [c for c in event_df.columns if event_df[c].dtype == "object" and c not in ["Event Name"]]
+    results = []
+    for col in question_cols:
+        if pd.api.types.is_numeric_dtype(event_df[col]):
+            avg_val = round(event_df[col].mean(), 2)
+            results.append({"Question": col, "Average": avg_val, "Summary": "", "Themes": ""})
+        else:
+            all_text = " ".join(event_df[col].dropna().astype(str))
+            summary = summarize_text_one_sentence(all_text)
+            themes = extract_themes_with_counts(all_text)
+            results.append({"Question": col, "Average": "", "Summary": summary, "Themes": themes})
 
-    for col in text_cols:
-        st.write(f"### 📝 {col}")
-        all_text = " ".join(event_df[col].dropna().astype(str))
+    results_df = pd.DataFrame(results)
 
-        summary = summarize_text_one_sentence(all_text)
-        themes = extract_themes_with_counts(all_text)
+    # Show results in a table
+    st.write("### 📊 Question 1–10 Summary")
+    st.dataframe(results_df, use_container_width=True)
 
-        st.markdown(f"**Summary:** {summary}")
-        st.markdown("**Themes:**")
-        st.text(themes)
 else:
     st.warning("No data found for this event.")
