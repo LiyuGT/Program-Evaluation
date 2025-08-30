@@ -62,11 +62,11 @@ st.set_page_config(layout="wide")
 st.title("📊 Program Evaluation Dashboard")
 
 # Dropdown for event selection
-event_names = sorted(table_df["Event Name"].dropna().unique())
+event_names = sorted(table_df["Event"].dropna().unique())
 selected_event = st.selectbox("Select an Event", event_names)
 
 # Filter data
-event_df = table_df[table_df["Event Name"] == selected_event]
+event_df = table_df[table_df["Event"] == selected_event]
 
 if not event_df.empty:
     st.subheader(f"📌 Summary for: {selected_event}")
