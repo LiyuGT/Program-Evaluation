@@ -60,6 +60,44 @@ def extract_leading_number(value):
     match = re.match(r"(\d+)", str(value))
     return int(match.group(1)) if match else None
 
+def make_html_table(df):
+    """Render dataframe as HTML so text wraps instead of cutting off"""
+    html = """
+    <style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+        vertical-align: top;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+    }
+    th {
+        background-color: #f4f4f4;
+        font-weight: bold;
+    }
+    </style>
+    <table>
+        <tr>
+            <th>Question</th>
+            <th>Value</th>
+        </tr>
+    """
+    for _, row in df.iterrows():
+        html += f"""
+        <tr>
+            <td>{row['Question']}</td>
+            <td>{row['Value']}</td>
+        </tr>
+        """
+    html += "</table>"
+    return html
+
 # ============ STREAMLIT APP ============
 st.set_page_config(layout="wide")
 st.title("📊 Program Evaluation Dashboard")
@@ -109,7 +147,6 @@ if not event_df.empty:
             results.append({
                 "Event": selected_event,
                 "Question": col + "_Average",
-                #"Metric": "Average",
                 "Value": avg_val
             })
 
@@ -121,7 +158,6 @@ if not event_df.empty:
             results.append({
                 "Event": selected_event,
                 "Question": col + "_Summary",
-                #"Metric": "Summary",
                 "Value": summary
             })
 
@@ -133,16 +169,15 @@ if not event_df.empty:
             results.append({
                 "Event": selected_event,
                 "Question": col + "_Themes",
-                #"Metric": "Themes",
                 "Value": themes
             })
 
     # Convert to DataFrame (long format)
     results_df = pd.DataFrame(results)
 
-    # Show results in vertical layout
+    # Show results in vertical layout with wrapped text
     st.write("### 📊 Student Feedback Summary")
-    st.dataframe(results_df, use_container_width=True)
+    st.markdown(make_html_table(results_df), unsafe_allow_html=True)
 
     # ========== Raw Feedback Section ==========
     st.write("### 📝 Raw Student Feedback")
