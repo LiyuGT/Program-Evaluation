@@ -106,8 +106,8 @@ if not event_df.empty:
             avg_val = round(numeric_series.mean(), 2) if not numeric_series.empty else ""
             results.append({
                 "Event": selected_event,
-                "Question": col,
-                "Metric": "Average",
+                "Question": col + "_Average",
+                #"Metric": "Average",
                 "Value": avg_val
             })
 
@@ -118,8 +118,8 @@ if not event_df.empty:
             summary = summarize_text_one_sentence(all_text)
             results.append({
                 "Event": selected_event,
-                "Question": col,
-                "Metric": "Summary",
+                "Question": col + "_Summary",
+                #"Metric": "Summary",
                 "Value": summary
             })
 
@@ -130,8 +130,8 @@ if not event_df.empty:
             themes = extract_themes_with_counts(all_text)
             results.append({
                 "Event": selected_event,
-                "Question": col,
-                "Metric": "Themes",
+                "Question": col + "_Themes",
+                #"Metric": "Themes",
                 "Value": themes
             })
 
