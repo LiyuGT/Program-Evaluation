@@ -141,7 +141,7 @@ if not event_df.empty:
     results_df = pd.DataFrame(results)
 
     # Show results in vertical layout
-    st.write("### 📊 Question 1–10 Summary (Readable Format)")
+    st.write("### 📊 Student Feedback Summary")
     st.dataframe(results_df, use_container_width=True)
 
     # ========== Raw Feedback Section ==========
