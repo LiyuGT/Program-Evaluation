@@ -38,11 +38,10 @@ def extract_themes_with_counts(text, max_tokens=200):
     response = openai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that extracts themes from student feedback."},
+            {"role": "system", "content": "Extract the most common themes from feedback with counts."},
             {"role": "user", "content": f"""
-From the following student feedback, extract the most common themes.
-List them with counts, e.g.:
-- Theme (mentioned by X students)
+From the following student feedback, extract the **most common theme only**, formatted like:
+Most common theme: <theme> (mentioned by X+ students)
 
 Text:
 {text}
@@ -70,20 +69,23 @@ if not event_df.empty:
     # Limit to Questions 1–10
     question_cols = [col for col in event_df.columns if col.startswith("Question") and any(col.startswith(f"Question {i}") for i in range(1, 11))]
 
-    results = []
+    # Initialize result row
+    results = {"Metric": ["Average", "Summary", "Themes"]}
+
     for col in question_cols:
         if pd.api.types.is_numeric_dtype(event_df[col]):
             avg_val = round(event_df[col].mean(), 2)
-            results.append({"Question": col, "Average": avg_val, "Summary": "", "Themes": ""})
+            results[col] = [avg_val, "", ""]
         else:
             all_text = " ".join(event_df[col].dropna().astype(str))
             summary = summarize_text_one_sentence(all_text)
             themes = extract_themes_with_counts(all_text)
-            results.append({"Question": col, "Average": "", "Summary": summary, "Themes": themes})
+            results[col] = ["", summary, themes]
 
-    results_df = pd.DataFrame(results)
+    # Convert to DataFrame
+    results_df = pd.DataFrame(results).set_index("Metric")
 
-    # Show results in a table
+    # Show results in wide format
     st.write("### 📊 Question 1–10 Summary")
     st.dataframe(results_df, use_container_width=True)
 
