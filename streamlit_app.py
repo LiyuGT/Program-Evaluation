@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import openai
 import os
+import re
 from pyairtable import Api
 
 # ============ CONFIG ============
@@ -52,6 +53,13 @@ Text:
     )
     return response.choices[0].message.content.strip()
 
+def extract_leading_number(value):
+    """Extracts leading numeric value from strings like '5-Definitely 😊 👍'"""
+    if pd.isna(value):
+        return None
+    match = re.match(r"(\d+)", str(value))
+    return int(match.group(1)) if match else None
+
 # ============ STREAMLIT APP ============
 st.set_page_config(layout="wide")
 st.title("📊 Program Evaluation Dashboard")
@@ -68,6 +76,12 @@ if not event_df.empty:
 
     # Limit to Questions 1–10
     question_cols = [col for col in event_df.columns if col.startswith("Question") and any(col.startswith(f"Question {i}") for i in range(1, 11))]
+
+    # Convert Likert-style responses to numeric for Q1,2,6,7,8,9
+    likert_questions = ["Question 1", "Question 2", "Question 6", "Question 7", "Question 8", "Question 9"]
+    for q in likert_questions:
+        if q in event_df.columns:
+            event_df[q] = event_df[q].apply(extract_leading_number)
 
     # Initialize result row
     results = {"Metric": ["Average", "Summary", "Themes"]}
