@@ -1,7 +1,13 @@
+#import
 import streamlit as st
 import pandas as pd
-from pyairtable import Api
 import openai
+import os
+from pyairtable import Table
+from pyairtable import Api
+from datetime import datetime
+import io
+import csv
 
 # ============ CONFIG ============
 AIRTABLE_PERSONAL_TOKEN = os.getenv("AIRTABLE_PERSONAL_TOKEN")
