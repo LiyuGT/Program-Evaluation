@@ -1,56 +1,89 @@
 import streamlit as st
-from openai import OpenAI
+import pandas as pd
+from pyairtable import Api
+import openai
 
-# Show title and description.
-st.title("💬 Chatbot")
-st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
-)
+# ============ CONFIG ============
+AIRTABLE_PERSONAL_TOKEN = "your_airtable_token"
+BASE_ID = "app3GAOlTLaNgZ5u5"
+TABLE = "Program Eval Data"
+openai.api_key = "your_openai_key"
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
+# ============ AIRTABLE CONNECTION ============
+api = Api(AIRTABLE_PERSONAL_TOKEN)
+table = api.table(BASE_ID, TABLE)
+records = table.all(view="All Responses")
+table_df = pd.DataFrame([record["fields"] for record in records])
+
+# ============ FUNCTIONS ============
+def summarize_text_one_sentence(text, max_tokens=80):
+    if not text or not str(text).strip():
+        return ""
+    response = openai.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "Summarize student feedback in one concise sentence."},
+            {"role": "user", "content": text},
+        ],
+        max_tokens=max_tokens,
+        temperature=0.3,
+    )
+    return response.choices[0].message.content.strip()
+
+def extract_themes_with_counts(text, max_tokens=200):
+    if not text or not str(text).strip():
+        return ""
+    response = openai.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that extracts themes from student feedback."},
+            {"role": "user", "content": f"""
+From the following student feedback, extract the most common themes.
+List them with counts, e.g.:
+- Theme (mentioned by X students)
+
+Text:
+{text}
+"""}
+        ],
+        max_tokens=max_tokens,
+        temperature=0.3,
+    )
+    return response.choices[0].message.content.strip()
+
+# ============ STREAMLIT APP ============
+st.set_page_config(layout="wide")
+st.title("📊 Program Evaluation Dashboard")
+
+# Dropdown for event selection
+event_names = sorted(table_df["Event Name"].dropna().unique())
+selected_event = st.selectbox("Select an Event", event_names)
+
+# Filter data
+event_df = table_df[table_df["Event Name"] == selected_event]
+
+if not event_df.empty:
+    st.subheader(f"📌 Summary for: {selected_event}")
+
+    # ---- Numeric averages ----
+    numeric_cols = event_df.select_dtypes(include="number").columns
+    if len(numeric_cols) > 0:
+        avg_scores = event_df[numeric_cols].mean().round(2)
+        st.write("### 📈 Average Scores")
+        st.dataframe(avg_scores)
+
+    # ---- Text summaries and themes ----
+    text_cols = [c for c in event_df.columns if event_df[c].dtype == "object" and c not in ["Event Name"]]
+
+    for col in text_cols:
+        st.write(f"### 📝 {col}")
+        all_text = " ".join(event_df[col].dropna().astype(str))
+
+        summary = summarize_text_one_sentence(all_text)
+        themes = extract_themes_with_counts(all_text)
+
+        st.markdown(f"**Summary:** {summary}")
+        st.markdown("**Themes:**")
+        st.text(themes)
 else:
-
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
-
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
-
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
-
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+    st.warning("No data found for this event.")
