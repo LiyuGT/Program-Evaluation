@@ -51,4 +51,20 @@ if not event_df.empty:
                 results.append({
                     "Event": event,
                     "Question": col + "_Themes",
-                    "Value
+                    "Value": themes
+                })
+
+    # Convert to DataFrame (long format)
+    results_df = pd.DataFrame(results)
+
+    # Show results
+    st.write("### 📊 Student Feedback Summary")
+    st.dataframe(results_df, use_container_width=True)
+
+    # ========== Raw Feedback Section ==========
+    st.write("### 📝 Raw Student Feedback")
+    feedback_cols = [c for c in event_df.columns if c.startswith("Question")]
+    st.dataframe(event_df[["Events"] + feedback_cols], use_container_width=True)
+
+else:
+    st.warning("No data found for the selected event(s).")
