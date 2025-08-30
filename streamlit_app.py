@@ -90,25 +90,18 @@ text_theme_questions = {
 
 # ============ EVENT MULTI-SELECT ============
 event_names = sorted(table_df["Events"].dropna().unique())
-event_options = ["All Events"] + event_names
-selected_events = st.multiselect("Select Event(s)", event_options, default="All Events")
-
-# If "All Events" is selected, use all events
-if "All Events" in selected_events:
-    filtered_events = event_names
-else:
-    filtered_events = selected_events
+selected_events = st.multiselect("Select Event(s)", event_names, default=event_names[:1])
 
 # Filter data for selected events
-event_df = table_df[table_df["Events"].isin(filtered_events)]
+event_df = table_df[table_df["Events"].isin(selected_events)]
 
 if not event_df.empty:
-    st.subheader(f"📌 Summary for: {', '.join(filtered_events)}")
+    st.subheader(f"📌 Summary for: {', '.join(selected_events)}")
 
     # ========== Build results (long format) ==========
     results = []
 
-    for event in filtered_events:
+    for event in selected_events:
         event_data = event_df[event_df["Events"] == event]
 
         # Numeric
