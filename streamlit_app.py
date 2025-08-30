@@ -88,12 +88,14 @@ if not event_df.empty:
         "Question 3- learned": "Question 3- learned_summary",
         "Question 4b- Liked best": "Question 4b- Liked best_summary",
         "Question 5- Suggestions or comments": "Question 5- Suggestions or comments_summary",
+        "Question 10- Program Specific #5 Open Text",
     }
 
     text_theme_questions = {
         "Question 3- learned": "Question 3- learned_themes",
         "Question 4b- Liked best": "Question 4b- Liked best_themes",
         "Question 5- Suggestions or comments": "Question 5- Suggestions or comments_themes",
+        "Question 10- Program Specific #5 Open Text",
     }
 
     # ========== Build results (long format) ==========
