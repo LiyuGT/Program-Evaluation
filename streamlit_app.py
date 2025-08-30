@@ -39,10 +39,10 @@ def extract_themes_with_counts(text, max_tokens=200):
     response = openai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "Extract the most common theme from feedback with counts."},
+            {"role": "system", "content": "Extract the most common themes from feedback with counts, in bullet format."},
             {"role": "user", "content": f"""
-From the following student feedback, extract the **most common theme only**, formatted like:
-<theme> (mentioned by X students)
+From the following student feedback, extract and list the **main themes with counts**, formatted like:
+- <theme> (mentioned by X students)
 
 Text:
 {text}
@@ -74,28 +74,56 @@ event_df = table_df[table_df["Events"] == selected_event]
 if not event_df.empty:
     st.subheader(f"📌 Summary for: {selected_event}")
 
-    # Limit to Questions 1–10
-    question_cols = [col for col in event_df.columns if col.startswith("Question") and any(col.startswith(f"Question {i}") for i in range(1, 11))]
+    # ========== Define question mapping ==========
+    numeric_questions = {
+        "Question 1- Net Promoter": "Question 1- Net Promoter_num",
+        "Question 2- Engaging": "Question 2- Engaging_num",
+        "Question 6- Program Specific #1": "Question 6- Program Specific #1_num",
+        "Question 7- Program Specific #2": "Question 7- Program Specific #2_num",
+        "Question 8": "Question 8_num",
+        "Question 9": "Question 9_num",
+    }
 
-    # Convert Likert-style responses to numeric for any column like "5-Definitely..."
-    for col in question_cols:
-        if event_df[col].dtype == "object" and event_df[col].str.match(r"^\d+").any():
-            event_df[col] = event_df[col].apply(extract_leading_number)
+    text_summary_questions = {
+        "Question 3- learned": "Question 3- learned_summary",
+        "Question 4b- Liked best": "Question 4b- Liked best_summary",
+        "Question 5- Suggestions or comments": "Question 5- Suggestions or comments_summary",
+    }
 
-    results = []
-    for col in question_cols:
-        if pd.api.types.is_numeric_dtype(event_df[col]):
-            avg_val = round(event_df[col].mean(), 2)
-            results.append({"Question": col, "Average": avg_val, "Summary": "", "Themes": ""})
-        else:
+    text_theme_questions = {
+        "Question 3- learned": "Question 3- learned_themes",
+        "Question 4b- Liked best": "Question 4b- Liked best_themes",
+        "Question 5- Suggestions or comments": "Question 5- Suggestions or comments_themes",
+    }
+
+    # ========== Build one row result ==========
+    row_result = {"Event Name": selected_event}
+
+    # Numeric
+    for col, new_col in numeric_questions.items():
+        if col in event_df.columns:
+            numeric_series = event_df[col].dropna().apply(extract_leading_number)
+            if not numeric_series.empty:
+                row_result[new_col] = round(numeric_series.mean(), 2)
+            else:
+                row_result[new_col] = ""
+
+    # Summaries
+    for col, new_col in text_summary_questions.items():
+        if col in event_df.columns:
             all_text = " ".join(event_df[col].dropna().astype(str))
-            summary = summarize_text_one_sentence(all_text)
-            themes = extract_themes_with_counts(all_text)
-            results.append({"Question": col, "Average": "", "Summary": summary, "Themes": themes})
+            row_result[new_col] = summarize_text_one_sentence(all_text)
 
-    results_df = pd.DataFrame(results).set_index("Question")
+    # Themes
+    for col, new_col in text_theme_questions.items():
+        if col in event_df.columns:
+            all_text = " ".join(event_df[col].dropna().astype(str))
+            row_result[new_col] = extract_themes_with_counts(all_text)
 
-    # Show results in row format
+    # Convert to DataFrame (single row)
+    results_df = pd.DataFrame([row_result])
+
+    # Show results
     st.write("### 📊 Question 1–10 Summary")
     st.dataframe(results_df, use_container_width=True)
 
