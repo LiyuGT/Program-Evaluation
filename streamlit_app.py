@@ -96,35 +96,50 @@ if not event_df.empty:
         "Question 5- Suggestions or comments": "Question 5- Suggestions or comments_themes",
     }
 
-    # ========== Build one row result ==========
-    row_result = {"Event Name": selected_event}
+    # ========== Build results (long format) ==========
+    results = []
 
     # Numeric
     for col, new_col in numeric_questions.items():
         if col in event_df.columns:
             numeric_series = event_df[col].dropna().apply(extract_leading_number)
-            if not numeric_series.empty:
-                row_result[new_col] = round(numeric_series.mean(), 2)
-            else:
-                row_result[new_col] = ""
+            avg_val = round(numeric_series.mean(), 2) if not numeric_series.empty else ""
+            results.append({
+                "Event": selected_event,
+                "Question": col,
+                "Metric": "Average",
+                "Value": avg_val
+            })
 
     # Summaries
     for col, new_col in text_summary_questions.items():
         if col in event_df.columns:
             all_text = " ".join(event_df[col].dropna().astype(str))
-            row_result[new_col] = summarize_text_one_sentence(all_text)
+            summary = summarize_text_one_sentence(all_text)
+            results.append({
+                "Event": selected_event,
+                "Question": col,
+                "Metric": "Summary",
+                "Value": summary
+            })
 
     # Themes
     for col, new_col in text_theme_questions.items():
         if col in event_df.columns:
             all_text = " ".join(event_df[col].dropna().astype(str))
-            row_result[new_col] = extract_themes_with_counts(all_text)
+            themes = extract_themes_with_counts(all_text)
+            results.append({
+                "Event": selected_event,
+                "Question": col,
+                "Metric": "Themes",
+                "Value": themes
+            })
 
-    # Convert to DataFrame (single row)
-    results_df = pd.DataFrame([row_result])
+    # Convert to DataFrame (long format)
+    results_df = pd.DataFrame(results)
 
-    # Show results
-    st.write("### 📊 Question 1–10 Summary")
+    # Show results in vertical layout
+    st.write("### 📊 Question 1–10 Summary (Readable Format)")
     st.dataframe(results_df, use_container_width=True)
 
     # ========== Raw Feedback Section ==========
