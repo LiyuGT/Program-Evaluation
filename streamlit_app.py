@@ -39,10 +39,10 @@ def extract_themes_with_counts(text, max_tokens=200):
     response = openai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "Extract the most common themes from feedback with counts."},
+            {"role": "system", "content": "Extract the most common theme from feedback with counts."},
             {"role": "user", "content": f"""
 From the following student feedback, extract the **most common theme only**, formatted like:
-Most common theme: <theme> (mentioned by X+ students)
+<theme> (mentioned by X students)
 
 Text:
 {text}
@@ -77,29 +77,25 @@ if not event_df.empty:
     # Limit to Questions 1–10
     question_cols = [col for col in event_df.columns if col.startswith("Question") and any(col.startswith(f"Question {i}") for i in range(1, 11))]
 
-    # Convert Likert-style responses to numeric for Q1,2,6,7,8,9
-    likert_questions = ["Question 1", "Question 2", "Question 6", "Question 7", "Question 8", "Question 9"]
-    for q in likert_questions:
-        if q in event_df.columns:
-            event_df[q] = event_df[q].apply(extract_leading_number)
+    # Convert Likert-style responses to numeric for any column like "5-Definitely..."
+    for col in question_cols:
+        if event_df[col].dtype == "object" and event_df[col].str.match(r"^\d+").any():
+            event_df[col] = event_df[col].apply(extract_leading_number)
 
-    # Initialize result row
-    results = {"Metric": ["Average", "Summary", "Themes"]}
-
+    results = []
     for col in question_cols:
         if pd.api.types.is_numeric_dtype(event_df[col]):
             avg_val = round(event_df[col].mean(), 2)
-            results[col] = [avg_val, "", ""]
+            results.append({"Question": col, "Average": avg_val, "Summary": "", "Themes": ""})
         else:
             all_text = " ".join(event_df[col].dropna().astype(str))
             summary = summarize_text_one_sentence(all_text)
             themes = extract_themes_with_counts(all_text)
-            results[col] = ["", summary, themes]
+            results.append({"Question": col, "Average": "", "Summary": summary, "Themes": themes})
 
-    # Convert to DataFrame
-    results_df = pd.DataFrame(results).set_index("Metric")
+    results_df = pd.DataFrame(results).set_index("Question")
 
-    # Show results in wide format
+    # Show results in row format
     st.write("### 📊 Question 1–10 Summary")
     st.dataframe(results_df, use_container_width=True)
 
