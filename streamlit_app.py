@@ -4,10 +4,10 @@ from pyairtable import Api
 import openai
 
 # ============ CONFIG ============
-AIRTABLE_PERSONAL_TOKEN = "your_airtable_token"
+AIRTABLE_PERSONAL_TOKEN = os.getenv("AIRTABLE_PERSONAL_TOKEN")
 BASE_ID = "app3GAOlTLaNgZ5u5"
 TABLE = "Program Eval Data"
-openai.api_key = "your_openai_key"
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # ============ AIRTABLE CONNECTION ============
 api = Api(AIRTABLE_PERSONAL_TOKEN)
