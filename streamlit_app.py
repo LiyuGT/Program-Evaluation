@@ -96,46 +96,51 @@ if not event_df.empty:
         "Question 5- Suggestions or comments": "Question 5- Suggestions or comments_themes",
     }
 
-# ========== Build results (two column format) ==========
-results = []
+    # ========== Build results (long format) ==========
+    results = []
 
-# Numeric
-for col, new_col in numeric_questions.items():
-    if col in event_df.columns:
-        numeric_series = event_df[col].dropna().apply(extract_leading_number)
-        avg_val = round(numeric_series.mean(), 2) if not numeric_series.empty else ""
-        results.append({
-            "Question": col,
-            "Value": avg_val
-        })
+    # Numeric
+    for col, new_col in numeric_questions.items():
+        if col in event_df.columns:
+            numeric_series = event_df[col].dropna().apply(extract_leading_number)
+            avg_val = round(numeric_series.mean(), 2) if not numeric_series.empty else ""
+            results.append({
+                "Event": selected_event,
+                "Question": col,
+                "Metric": "Average",
+                "Value": avg_val
+            })
 
-# Summaries
-for col, new_col in text_summary_questions.items():
-    if col in event_df.columns:
-        all_text = " ".join(event_df[col].dropna().astype(str))
-        summary = summarize_text_one_sentence(all_text)
-        results.append({
-            "Question": f"{col} _summary",
-            "Value": summary
-        })
+    # Summaries
+    for col, new_col in text_summary_questions.items():
+        if col in event_df.columns:
+            all_text = " ".join(event_df[col].dropna().astype(str))
+            summary = summarize_text_one_sentence(all_text)
+            results.append({
+                "Event": selected_event,
+                "Question": col,
+                "Metric": "Summary",
+                "Value": summary
+            })
 
-# Themes
-for col, new_col in text_theme_questions.items():
-    if col in event_df.columns:
-        all_text = " ".join(event_df[col].dropna().astype(str))
-        themes = extract_themes_with_counts(all_text)
-        results.append({
-            "Question": f"{col} _theme",
-            "Value": themes
-        })
+    # Themes
+    for col, new_col in text_theme_questions.items():
+        if col in event_df.columns:
+            all_text = " ".join(event_df[col].dropna().astype(str))
+            themes = extract_themes_with_counts(all_text)
+            results.append({
+                "Event": selected_event,
+                "Question": col,
+                "Metric": "Themes",
+                "Value": themes
+            })
 
-# Convert to DataFrame (two column)
-results_df = pd.DataFrame(results, columns=["Question", "Value"])
+    # Convert to DataFrame (long format)
+    results_df = pd.DataFrame(results)
 
-# Show results
-st.write("### 📊 Question 1–10 Summary (Readable Format)")
-st.dataframe(results_df, use_container_width=True)
-
+    # Show results in vertical layout
+    st.write("### 📊 Question 1–10 Summary (Readable Format)")
+    st.dataframe(results_df, use_container_width=True)
 
     # ========== Raw Feedback Section ==========
     st.write("### 📝 Raw Student Feedback")
