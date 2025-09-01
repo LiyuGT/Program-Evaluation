@@ -60,21 +60,6 @@ def extract_leading_number(value):
     match = re.match(r"(\d+)", str(value))
     return int(match.group(1)) if match else None
 
-def get_col_widths(df, min_width=100, max_width=800, char_px=10):
-    """
-    Estimate column widths based on the longest string length in each column.
-    - min_width: smallest width (px)
-    - max_width: largest width (px)
-    - char_px: approx pixels per character
-    """
-    widths = {}
-    for col in df.columns:
-        # Get max string length in this column
-        max_len = df[col].astype(str).map(len).max()
-        est_width = min(max_width, max(min_width, max_len * char_px))
-        widths[col] = est_width
-    return widths
-
 # ============ STREAMLIT APP ============
 st.set_page_config(layout="wide")
 st.title("📊 Program Evaluation Dashboard")
@@ -155,39 +140,28 @@ if not event_df.empty:
     # Convert to DataFrame (long format)
     results_df = pd.DataFrame(results)
 
-    # === Dynamic column widths ===
-    def get_col_widths(df):
-        """
-        Return Streamlit-friendly width categories based on text length.
-        """
-        widths = {}
-        for col in df.columns:
-            max_len = df[col].astype(str).map(len).max()
-
-            if max_len <= 15:
-                widths[col] = 160
-            elif max_len <= 40:
-                widths[col] = "medium"
-            else:
-                widths[col] = "large"
-        return widths
-
-
-    # Show results with auto column widths
+    # Show results with fixed column widths
     st.write("### 📊 Student Feedback Summary")
-    col_widths = get_col_widths(results_df)
-
     st.data_editor(
         results_df,
         use_container_width=True,
         column_config={
-            col: st.column_config.TextColumn(col, width=col_widths[col])
-            for col in results_df.columns
+            "Event": st.column_config.TextColumn(
+                "Event",
+                width=180   # fixed width in pixels
+            ),
+            "Question": st.column_config.TextColumn(
+                "Question",
+                width=250   # adjust as needed
+            ),
+            "Value": st.column_config.TextColumn(
+                "Value",
+                width=600   # let this column take more space
+            ),
         },
         hide_index=True,
-        disabled=True
+        disabled=True  # makes it behave like st.dataframe (not editable)
     )
-
 
     # ========== Raw Feedback Section ==========
     st.write("### 📝 Raw Student Feedback")
