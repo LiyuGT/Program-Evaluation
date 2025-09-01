@@ -152,7 +152,7 @@ if not event_df.empty:
             ),
             "Question": st.column_config.TextColumn(
                 "Question",
-                width=205   # adjust as needed
+                width=190   # adjust as needed
             ),
             "Value": st.column_config.TextColumn(
                 "Value",
