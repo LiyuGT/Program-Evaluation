@@ -156,7 +156,7 @@ if not event_df.empty:
             ),
             "Value": st.column_config.TextColumn(
                 "Value",
-                width=600   # let this column take more space
+                width=655   # let this column take more space
             ),
         },
         hide_index=True,
