@@ -140,9 +140,28 @@ if not event_df.empty:
     # Convert to DataFrame (long format)
     results_df = pd.DataFrame(results)
 
-    # Show results
+    # Show results with fixed column widths
     st.write("### 📊 Student Feedback Summary")
-    st.dataframe(results_df, use_container_width=True)
+    st.data_editor(
+        results_df,
+        use_container_width=True,
+        column_config={
+            "Event": st.column_config.TextColumn(
+                "Event",
+                width=180   # fixed width in pixels
+            ),
+            "Question": st.column_config.TextColumn(
+                "Question",
+                width=250   # adjust as needed
+            ),
+            "Value": st.column_config.TextColumn(
+                "Value",
+                width=600   # let this column take more space
+            ),
+        },
+        hide_index=True,
+        disabled=True  # makes it behave like st.dataframe (not editable)
+    )
 
     # ========== Raw Feedback Section ==========
     st.write("### 📝 Raw Student Feedback")
