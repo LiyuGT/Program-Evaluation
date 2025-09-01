@@ -148,7 +148,7 @@ if not event_df.empty:
         column_config={
             "Event": st.column_config.TextColumn(
                 "Event",
-                width=160   # fixed width in pixels
+                width=100   # fixed width in pixels
             ),
             "Question": st.column_config.TextColumn(
                 "Question",
