@@ -156,10 +156,27 @@ if not event_df.empty:
     results_df = pd.DataFrame(results)
 
     # === Dynamic column widths ===
-    col_widths = get_col_widths(results_df)
+    def get_col_widths(df):
+        """
+        Return Streamlit-friendly width categories based on text length.
+        """
+        widths = {}
+        for col in df.columns:
+            max_len = df[col].astype(str).map(len).max()
+
+            if max_len <= 15:
+                widths[col] = "small"
+            elif max_len <= 40:
+                widths[col] = "medium"
+            else:
+                widths[col] = "large"
+        return widths
+
 
     # Show results with auto column widths
     st.write("### 📊 Student Feedback Summary")
+    col_widths = get_col_widths(results_df)
+
     st.data_editor(
         results_df,
         use_container_width=True,
@@ -168,8 +185,9 @@ if not event_df.empty:
             for col in results_df.columns
         },
         hide_index=True,
-        disabled=True  # makes it behave like st.dataframe
+        disabled=True
     )
+
 
     # ========== Raw Feedback Section ==========
     st.write("### 📝 Raw Student Feedback")
