@@ -148,15 +148,15 @@ if not event_df.empty:
         column_config={
             "Event": st.column_config.TextColumn(
                 "Event",
-                width=180   # fixed width in pixels
+                width=160   # fixed width in pixels
             ),
             "Question": st.column_config.TextColumn(
                 "Question",
-                width=250   # adjust as needed
+                width=180   # adjust as needed
             ),
             "Value": st.column_config.TextColumn(
                 "Value",
-                width=600   # let this column take more space
+                width=670   # let this column take more space
             ),
         },
         hide_index=True,
