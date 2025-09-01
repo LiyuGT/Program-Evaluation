@@ -152,11 +152,11 @@ if not event_df.empty:
             ),
             "Question": st.column_config.TextColumn(
                 "Question",
-                width=180   # adjust as needed
+                width=120   # adjust as needed
             ),
             "Value": st.column_config.TextColumn(
                 "Value",
-                width=670   # let this column take more space
+                width=750   # let this column take more space
             ),
         },
         hide_index=True,
