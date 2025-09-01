@@ -165,7 +165,7 @@ if not event_df.empty:
             max_len = df[col].astype(str).map(len).max()
 
             if max_len <= 15:
-                widths[col] = "small"
+                widths[col] = 160
             elif max_len <= 40:
                 widths[col] = "medium"
             else:
