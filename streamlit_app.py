@@ -90,7 +90,7 @@ text_theme_questions = {
 
 # ============ EVENT MULTI-SELECT ============
 event_names = sorted(table_df["Events"].dropna().unique())
-selected_events = st.multiselect("Select Event(s)", event_names, default=event_names[:1])
+selected_events = st.multiselect("Select Event(s)", event_names)
 
 # ============ EVENT TYPE MULTI-SELECT ============
 if "Type (from Event) 2" in table_df.columns:
@@ -100,27 +100,34 @@ if "Type (from Event) 2" in table_df.columns:
     )
 
     event_types = sorted(table_df["Type (from Event) 2"].dropna().unique())
-    selected_types = st.multiselect("Select Event Type(s)", event_types, default=event_types[:1])
+    selected_types = st.multiselect("Select Event Type(s)", event_types)
 else:
     st.warning("⚠️ No 'Type (from Event) 2' column found in Airtable data.")
     selected_types = []
 
+# ============ FLEXIBLE FILTERING ============
+event_df = table_df.copy()
 
-# Filter data for selected events AND types
-event_df = table_df[
-    table_df["Events"].isin(selected_events) &
-    (table_df["Type (from Event) 2"].isin(selected_types) if selected_types else True)
-]
+if selected_events:  # filter by event names if chosen
+    event_df = event_df[event_df["Events"].isin(selected_events)]
 
+if selected_types:  # filter by event types if chosen
+    event_df = event_df[event_df["Type (from Event) 2"].isin(selected_types)]
 
-
+# ============ SUMMARY ============
 if not event_df.empty:
-    st.subheader(f"📌 Summary for: {', '.join(selected_events)}")
+    filter_summary = []
+    if selected_events:
+        filter_summary.append(f"Events: {', '.join(selected_events)}")
+    if selected_types:
+        filter_summary.append(f"Types: {', '.join(selected_types)}")
+
+    st.subheader("📌 Summary for: " + (" | ".join(filter_summary) if filter_summary else "All Data"))
 
     # ========== Build results (long format) ==========
     results = []
 
-    for event in selected_events:
+    for event in event_df["Events"].dropna().unique():
         event_data = event_df[event_df["Events"] == event]
 
         # Numeric
@@ -165,21 +172,12 @@ if not event_df.empty:
         results_df,
         use_container_width=True,
         column_config={
-            "Event": st.column_config.TextColumn(
-                "Event",
-                width=100   # fixed width in pixels
-            ),
-            "Question": st.column_config.TextColumn(
-                "Question",
-                width=120   # adjust as needed
-            ),
-            "Value": st.column_config.TextColumn(
-                "Value",
-                width=750   # let this column take more space
-            ),
+            "Event": st.column_config.TextColumn("Event", width=100),
+            "Question": st.column_config.TextColumn("Question", width=120),
+            "Value": st.column_config.TextColumn("Value", width=750),
         },
         hide_index=True,
-        disabled=True  # makes it behave like st.dataframe (not editable)
+        disabled=True
     )
 
     # ========== Raw Feedback Section ==========
@@ -188,4 +186,4 @@ if not event_df.empty:
     st.dataframe(event_df[["Events"] + feedback_cols], use_container_width=True)
 
 else:
-    st.warning("No data found for the selected event(s).")
+    st.warning("No data found for the selected filters.")
