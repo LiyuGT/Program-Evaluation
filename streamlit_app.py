@@ -92,8 +92,16 @@ text_theme_questions = {
 event_names = sorted(table_df["Events"].dropna().unique())
 selected_events = st.multiselect("Select Event(s)", event_names, default=event_names[:1])
 
-# Filter data for selected events
-event_df = table_df[table_df["Events"].isin(selected_events)]
+# ============ EVENT TYPE MULTI-SELECT ============
+event_types = sorted(table_df["Type (from Event) 2"].dropna().unique())
+selected_types = st.multiselect("Select Event Type(s)", event_types, default=event_types[:1])
+
+# Filter data for selected events AND types
+event_df = table_df[
+    table_df["Events"].isin(selected_events) &
+    table_df["Type (from Event) 2"].isin(selected_types)
+]
+
 
 if not event_df.empty:
     st.subheader(f"📌 Summary for: {', '.join(selected_events)}")
