@@ -166,19 +166,44 @@ if not event_df.empty:
     # Convert to DataFrame (long format)
     results_df = pd.DataFrame(results)
 
-    # Show results with fixed column widths
-    st.write("### 📊 Student Feedback Summary")
-    st.data_editor(
-        results_df,
-        use_container_width=True,
-        column_config={
-            "Event": st.column_config.TextColumn("Event", width=100),
-            "Question": st.column_config.TextColumn("Question", width=120),
-            "Value": st.column_config.TextColumn("Value", width=750),
-        },
-        hide_index=True,
-        disabled=True
-    )
+    # 🔹 If filtering only by event types (not specific events), adjust table
+    if selected_types and not selected_events:
+        # Add event type column
+        event_type_map = event_df.set_index("Events")["Type (from Event) 2"].to_dict()
+        results_df["Event Type"] = results_df["Event"].map(event_type_map)
+
+        # Reorder + drop Event column
+        results_df = results_df[["Event Type", "Question", "Value"]]
+
+        st.write("### 📊 Student Feedback Summary (by Event Type)")
+        st.data_editor(
+            results_df,
+            use_container_width=True,
+            column_config={
+                "Event Type": st.column_config.TextColumn("Event Type", width=120),
+                "Question": st.column_config.TextColumn("Question", width=120),
+                "Value": st.column_config.TextColumn("Value", width=750),
+            },
+            hide_index=True,
+            disabled=True
+        )
+
+    else:
+        # Default: show Event, Question, Value
+        results_df = results_df[["Event", "Question", "Value"]]
+
+        st.write("### 📊 Student Feedback Summary (by Event)")
+        st.data_editor(
+            results_df,
+            use_container_width=True,
+            column_config={
+                "Event": st.column_config.TextColumn("Event", width=120),
+                "Question": st.column_config.TextColumn("Question", width=120),
+                "Value": st.column_config.TextColumn("Value", width=750),
+            },
+            hide_index=True,
+            disabled=True
+        )
 
     # ========== Raw Feedback Section ==========
     st.write("### 📝 Raw Student Feedback")
