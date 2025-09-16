@@ -93,14 +93,25 @@ event_names = sorted(table_df["Events"].dropna().unique())
 selected_events = st.multiselect("Select Event(s)", event_names, default=event_names[:1])
 
 # ============ EVENT TYPE MULTI-SELECT ============
-event_types = sorted(table_df["Type (from Event) 2"].dropna().unique())
-selected_types = st.multiselect("Select Event Type(s)", event_types, default=event_types[:1])
+if "Type (from Event) 2" in table_df.columns:
+    # Normalize values to strings (handle lists, None, etc.)
+    table_df["Type (from Event) 2"] = table_df["Type (from Event) 2"].apply(
+        lambda x: ", ".join(x) if isinstance(x, list) else str(x) if pd.notna(x) else None
+    )
+
+    event_types = sorted(table_df["Type (from Event) 2"].dropna().unique())
+    selected_types = st.multiselect("Select Event Type(s)", event_types, default=event_types[:1])
+else:
+    st.warning("⚠️ No 'Type (from Event) 2' column found in Airtable data.")
+    selected_types = []
+
 
 # Filter data for selected events AND types
 event_df = table_df[
     table_df["Events"].isin(selected_events) &
-    table_df["Type (from Event) 2"].isin(selected_types)
+    (table_df["Type (from Event) 2"].isin(selected_types) if selected_types else True)
 ]
+
 
 
 if not event_df.empty:
