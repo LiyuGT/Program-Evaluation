@@ -112,7 +112,7 @@ else:
     st.warning("⚠️ No 'Event Start (from Event) 2' column found in Airtable data.")
     event_names = sorted(table_df["Events"].dropna().unique())
 
-selected_events = st.multiselect("Select Event(s)", event_names)
+selected_events = st.multiselect("Select Event(s)", event_names, placeholder="Choose Event(s)")
 
 # ============ EVENT TYPE MULTI-SELECT ============
 if "Type (from Event) 2" in table_df.columns:
@@ -120,7 +120,7 @@ if "Type (from Event) 2" in table_df.columns:
         lambda x: ", ".join(x) if isinstance(x, list) else str(x) if pd.notna(x) else None
     )
     event_types = sorted(table_df["Type (from Event) 2"].dropna().unique())
-    selected_types = st.multiselect("Select Event Type(s)", event_types)
+    selected_types = st.multiselect("Select Event Type(s)", event_types, placeholder="Choose Event Type(s)")
 else:
     st.warning("⚠️ No 'Type (from Event) 2' column found in Airtable data.")
     selected_types = []
@@ -129,7 +129,7 @@ else:
 if "Program Year (from Event)" in table_df.columns:
     table_df["Program Year (from Event)"] = table_df["Program Year (from Event)"].astype(str)
     program_years = sorted(table_df["Program Year (from Event)"].dropna().unique())
-    selected_years = st.multiselect("Select Program Year(s)", program_years)
+    selected_years = st.multiselect("Select Program Year(s)", program_years, placeholder="Choose Program Year(s)")
 else:
     st.warning("⚠️ No 'Program Year (from Event)' column found in Airtable data.")
     selected_years = []
@@ -147,16 +147,16 @@ if selected_years:  # filter by program year if chosen
     event_df = event_df[event_df["Program Year (from Event)"].isin(selected_years)]
 
 # ============ SUMMARY ============
-if not event_df.empty:
+if not event_df.empty and (selected_events or selected_types or selected_years):
     filter_summary = []
     if selected_events:
         filter_summary.append(f"Events: {', '.join(selected_events)}")
     if selected_types:
         filter_summary.append(f"Types: {', '.join(selected_types)}")
     if selected_years:
-        filter_summary.append(f"Years: {', '.join(selected_years)}")
+        filter_summary.append(f"Program Years: {', '.join(selected_years)}")
 
-    st.subheader("📌 Summary for: " + (" | ".join(filter_summary) if filter_summary else "All Data"))
+    st.subheader("📌 Summary for: " + (" | ".join(filter_summary)))
 
     # ========== Build results ==========
     results = []
@@ -274,4 +274,7 @@ if not event_df.empty:
     st.dataframe(event_df[["Events"] + feedback_cols], use_container_width=True)
 
 else:
-    st.warning("No data found for the selected filters.")
+    if not selected_events and not selected_types and not selected_years:
+        st.info("ℹ️ Please select a filter (Event, Event Type, or Program Year) to view results.")
+    else:
+        st.warning("No data found for the selected filters.")
