@@ -89,7 +89,29 @@ text_theme_questions = {
 }
 
 # ============ EVENT MULTI-SELECT ============
-event_names = sorted(table_df["Events"].dropna().unique())
+if "Event Start (from Event) 2" in table_df.columns:
+    # Convert to datetime safely
+    table_df["Event Start (from Event) 2"] = pd.to_datetime(
+        table_df["Event Start (from Event) 2"], errors="coerce"
+    )
+
+    # Get unique event-name + start-date pairs
+    event_info = (
+        table_df[["Events", "Event Start (from Event) 2"]]
+        .dropna(subset=["Events"])
+        .drop_duplicates()
+    )
+
+    # Sort by date (latest first)
+    event_info = event_info.sort_values("Event Start (from Event) 2", ascending=False)
+
+    # Use only event names, ordered
+    event_names = event_info["Events"].tolist()
+
+else:
+    st.warning("⚠️ No 'Event Start (from Event) 2' column found in Airtable data.")
+    event_names = sorted(table_df["Events"].dropna().unique())
+
 selected_events = st.multiselect("Select Event(s)", event_names)
 
 # ============ EVENT TYPE MULTI-SELECT ============
