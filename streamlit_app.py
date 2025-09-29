@@ -12,6 +12,28 @@ BASE_ID = "app3GAOlTLaNgZ5u5"
 TABLE = "Program Eval Data"
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+# ============ PIN LOCK ============
+APP_PIN = st.secrets.get("APP_PIN", "1234")  # fallback = 1234 if not set in secrets
+
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+
+if not st.session_state["authenticated"]:
+    st.title("🔒 Secure Dashboard")
+    pin_input = st.text_input("Enter PIN", type="password")
+    if st.button("Unlock"):
+        if pin_input == APP_PIN:
+            st.session_state["authenticated"] = True
+            st.success("✅ Access granted")
+            st.rerun()
+        else:
+            st.error("❌ Wrong PIN. Try again.")
+    st.stop()  # ⛔ stop here if not authenticated
+
+# ============ STREAMLIT APP ============
+st.set_page_config(layout="wide")
+st.title("📊 Program Evaluation Dashboard")
+
 # ============ AIRTABLE CONNECTION ============
 api = Api(AIRTABLE_PERSONAL_TOKEN)
 table = api.table(BASE_ID, TABLE)
@@ -59,10 +81,6 @@ def extract_leading_number(value):
         return None
     match = re.match(r"(\d+)", str(value))
     return int(match.group(1)) if match else None
-
-# ============ STREAMLIT APP ============
-st.set_page_config(layout="wide")
-st.title("📊 Program Evaluation Dashboard")
 
 # ========== Define question mapping ==========
 numeric_questions = {
@@ -160,7 +178,7 @@ if not event_df.empty and (selected_events or selected_types or selected_years):
 
     results = []
 
-    # 🔹 NEW: If multiple fiscal years selected → group by Program Year → Event Type
+    # 🔹 If multiple fiscal years selected → group by Program Year → Event Type
     if len(selected_years) > 1:
         for year in selected_years:
             year_data = event_df[event_df["Program Year (from Event)"] == year]
