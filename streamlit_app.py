@@ -19,7 +19,7 @@ if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
 if not st.session_state["authenticated"]:
-    st.title("🔒 Secure Dashboard")
+    st.title("🔒 Secure GenOne Program Eval Dashboard")
     pin_input = st.text_input("Enter PIN", type="password")
     if st.button("Unlock"):
         if pin_input == APP_PIN:
