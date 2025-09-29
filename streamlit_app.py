@@ -158,10 +158,69 @@ if not event_df.empty and (selected_events or selected_types or selected_years):
 
     st.subheader("📌 Summary for: " + (" | ".join(filter_summary)))
 
-    # ========== Build results ==========
     results = []
 
-    if selected_types and not selected_events:
+    # 🔹 NEW: If multiple fiscal years selected → group by year
+    if len(selected_years) > 1:
+        for year in selected_years:
+            year_data = event_df[event_df["Program Year (from Event)"] == year]
+
+            for event in year_data["Events"].dropna().unique():
+                event_data = year_data[year_data["Events"] == event]
+
+                # Numeric
+                for col, new_col in numeric_questions.items():
+                    if col in event_data.columns:
+                        numeric_series = event_data[col].dropna().apply(extract_leading_number)
+                        avg_val = round(numeric_series.mean(), 2) if not numeric_series.empty else ""
+                        results.append({
+                            "Program Year": year,
+                            "Event": event,
+                            "Question": col + "_Average",
+                            "Value": avg_val
+                        })
+
+                # Summaries
+                for col, new_col in text_summary_questions.items():
+                    if col in event_data.columns:
+                        all_text = " ".join(event_data[col].dropna().astype(str))
+                        summary = summarize_text_one_sentence(all_text)
+                        results.append({
+                            "Program Year": year,
+                            "Event": event,
+                            "Question": col + "_Summary",
+                            "Value": summary
+                        })
+
+                # Themes
+                for col, new_col in text_theme_questions.items():
+                    if col in event_data.columns:
+                        all_text = " ".join(event_data[col].dropna().astype(str))
+                        themes = extract_themes_with_counts(all_text)
+                        results.append({
+                            "Program Year": year,
+                            "Event": event,
+                            "Question": col + "_Themes",
+                            "Value": themes
+                        })
+
+        results_df = pd.DataFrame(results)[["Program Year", "Event", "Question", "Value"]]
+
+        st.write("### 📊 Student Feedback Summary (by Fiscal Year & Event)")
+        st.data_editor(
+            results_df,
+            use_container_width=True,
+            column_config={
+                "Program Year": st.column_config.TextColumn("Program Year", width=120),
+                "Event": st.column_config.TextColumn("Event", width=120),
+                "Question": st.column_config.TextColumn("Question", width=120),
+                "Value": st.column_config.TextColumn("Value", width=750),
+            },
+            hide_index=True,
+            disabled=True
+        )
+
+    elif selected_types and not selected_events:
         # 🔹 Aggregate at Event Type level
         for etype in selected_types:
             etype_data = event_df[event_df["Type (from Event) 2"] == etype]
@@ -199,7 +258,6 @@ if not event_df.empty and (selected_events or selected_types or selected_years):
                         "Value": themes
                     })
 
-        # Convert to DataFrame
         results_df = pd.DataFrame(results)[["Event Type", "Question", "Value"]]
 
         st.write("### 📊 Student Feedback Summary (by Event Type)")
