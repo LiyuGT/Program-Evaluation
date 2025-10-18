@@ -347,7 +347,7 @@ if not event_df.empty and (selected_events or selected_types or selected_years):
     # ========== Raw Feedback Section ==========
     st.write("### 📝 Raw Student Feedback")
     feedback_cols = [c for c in event_df.columns if c.startswith("Question")]
-    display_cols = ["Program Year (from Event)", "Type (from Event) 2", "Events"] + feedback_cols
+    display_cols = ["Program Year (from Event)", "Scholars (from Scholars)", "Type (from Event) 2", "Events"] + feedback_cols
     display_cols = [c for c in display_cols if c in event_df.columns]  # keep only available
     st.dataframe(event_df[display_cols], use_container_width=True)
 
