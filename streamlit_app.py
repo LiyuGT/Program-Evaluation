@@ -157,7 +157,6 @@ if not event_df.empty and (selected_events or selected_types or selected_years):
 
     with st.spinner("Analyzing feedback..."):
 
-        progress = st.progress(0)
         step = 0
 
         summary_results = {}
@@ -176,8 +175,6 @@ if not event_df.empty and (selected_events or selected_types or selected_years):
                 text = " ".join(sampled.astype(str))[:5000]
                 text_hash = hash_text(text)
 
-                st.write(f"Processing: {col}")
-
                 summary = safe_openai_call(summarize_text, text_hash, text)
                 theme = safe_openai_call(extract_themes, text_hash, text)
 
@@ -185,8 +182,7 @@ if not event_df.empty and (selected_events or selected_types or selected_years):
                 theme_results[col] = theme
 
                 step += 1
-                progress.progress(step / len(text_questions))
-
+                
         results = []
 
         for event in event_df["Events"].dropna().unique():
