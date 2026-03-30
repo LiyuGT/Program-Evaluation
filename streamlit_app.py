@@ -6,7 +6,8 @@ import os
 import re
 import time
 from pyairtable import Api
-from openai.error import RateLimitError
+import openai
+import time
 
 # ============ CONFIG ============
 AIRTABLE_PERSONAL_TOKEN = os.getenv("AIRTABLE_PERSONAL_TOKEN")
@@ -46,16 +47,22 @@ records = table.all(view="All Responses")
 table_df = pd.DataFrame([record["fields"] for record in records])
 
 # ============ FUNCTIONS ============
+import openai
+import time  # for retry delays
+
+# Example of handling rate limits safely
 def safe_openai_call(func, *args, retries=3, delay=5, **kwargs):
-    """Retry OpenAI call on rate limit errors"""
+    """Call OpenAI API with automatic retry on rate limit."""
     for i in range(retries):
         try:
             return func(*args, **kwargs)
-        except RateLimitError:
+        except openai.error.RateLimitError:  # works in runtime
             if i < retries - 1:
                 time.sleep(delay)
             else:
                 raise
+        except Exception as e:
+            raise e
 
 @st.cache_data(show_spinner=False)
 def summarize_text_one_sentence(text, max_tokens=80):
