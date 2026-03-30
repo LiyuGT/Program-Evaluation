@@ -40,7 +40,7 @@ if not st.session_state["authenticated"]:
 st.set_page_config(layout="wide")
 st.title("📊 Program Evaluation Dashboard")
 
-# ============ AIRTABLE CONNECTION ============
+# ============ AIRTABLE ============
 api = Api(AIRTABLE_PERSONAL_TOKEN)
 table = api.table(BASE_ID, TABLE)
 records = table.all(view="All Responses")
@@ -50,20 +50,17 @@ table_df = pd.DataFrame([record["fields"] for record in records])
 def hash_text(text):
     return hashlib.md5(text.encode()).hexdigest()
 
-def limit_text_length(text, max_chars=8000):
-    return text[:max_chars]
-
-def safe_openai_call(func, *args, retries=3, base_delay=2, **kwargs):
-    for i in range(retries):
-        try:
-            return func(*args, **kwargs)
-        except openai.RateLimitError:
-            wait = base_delay * (2 ** i) + random.uniform(0, 1)
-            time.sleep(wait)
-    return "⚠️ Skipped (rate limit)"
+def safe_openai_call(func, *args, timeout=15, **kwargs):
+    start = time.time()
+    try:
+        if time.time() - start > timeout:
+            return "⚠️ Timeout"
+        return func(*args, **kwargs)
+    except Exception:
+        return "⚠️ Failed"
 
 @st.cache_data(show_spinner=False)
-def summarize_text_cached(text_hash, text):
+def summarize_text(text_hash, text):
     if not text.strip():
         return ""
     response = openai.chat.completions.create(
@@ -72,28 +69,22 @@ def summarize_text_cached(text_hash, text):
             {"role": "system", "content": "Summarize student feedback in one concise sentence."},
             {"role": "user", "content": text},
         ],
-        max_tokens=80,
+        max_tokens=60,
         temperature=0.3,
     )
     return response.choices[0].message.content.strip()
 
 @st.cache_data(show_spinner=False)
-def extract_themes_cached(text_hash, text):
+def extract_themes(text_hash, text):
     if not text.strip():
         return ""
     response = openai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "Extract the most common themes with counts."},
-            {"role": "user", "content": f"""
-Extract themes with counts:
-- <theme> (mentioned by X students)
-
-Text:
-{text}
-"""}
+            {"role": "system", "content": "List top themes with counts."},
+            {"role": "user", "content": text},
         ],
-        max_tokens=200,
+        max_tokens=120,
         temperature=0.3,
     )
     return response.choices[0].message.content.strip()
@@ -105,8 +96,6 @@ def extract_leading_number(value):
     return int(match.group(1)) if match else None
 
 # ============ FILTERS ============
-
-# Event filter
 if "Event Start (from Event) 2" in table_df.columns:
     table_df["Event Start (from Event) 2"] = pd.to_datetime(
         table_df["Event Start (from Event) 2"], errors="coerce"
@@ -120,27 +109,23 @@ else:
 
 selected_events = st.multiselect("Select Event(s)", event_names)
 
-# Event Type filter
 if "Type (from Event) 2" in table_df.columns:
     table_df["Type (from Event) 2"] = table_df["Type (from Event) 2"].apply(
-        lambda x: ", ".join(x) if isinstance(x, list) else str(x) if pd.notna(x) else None
+        lambda x: ", ".join(x) if isinstance(x, list) else str(x)
     )
     event_types = sorted(table_df["Type (from Event) 2"].dropna().unique())
     selected_types = st.multiselect("Select Event Type(s)", event_types)
 else:
     selected_types = []
 
-# Program Year filter
 if "Program Year (from Event)" in table_df.columns:
     table_df["Program Year (from Event)"] = table_df["Program Year (from Event)"].astype(str)
-    program_years = sorted(table_df["Program Year (from Event)"].dropna().unique())
-    selected_years = st.multiselect("Select Program Year(s)", program_years)
+    years = sorted(table_df["Program Year (from Event)"].dropna().unique())
+    selected_years = st.multiselect("Select Program Year(s)", years)
 else:
     selected_years = []
 
-# Apply filters
 event_df = table_df.copy()
-
 if selected_events:
     event_df = event_df[event_df["Events"].isin(selected_events)]
 if selected_types:
@@ -165,58 +150,59 @@ text_questions = [
     "Question 10- Program Specific #5 Open Text",
 ]
 
-# ============ MAIN PROCESS ============
+# ============ MAIN ============
 if not event_df.empty and (selected_events or selected_types or selected_years):
 
-    st.subheader("📌 Summary Results")
+    st.subheader("📊 Summary Results")
 
     with st.spinner("Analyzing feedback..."):
 
-        results = []
+        progress = st.progress(0)
+        step = 0
 
-        # =============================
-        # GLOBAL TEXT PROCESSING (FAST + SAFE)
-        # =============================
         summary_results = {}
         theme_results = {}
 
         for col in text_questions:
             if col in event_df.columns:
-                # sample to prevent overload
-                sampled = event_df[col].dropna()
-                sampled = sampled.sample(n=min(50, len(sampled)), random_state=42)
 
-                all_text = " ".join(sampled.astype(str))
-                all_text = limit_text_length(all_text)
-                text_hash = hash_text(all_text)
+                # SAMPLE SMALLER (critical fix)
+                data = event_df[col].dropna()
+                if len(data) == 0:
+                    continue
 
-                summary = safe_openai_call(summarize_text_cached, text_hash, all_text)
-                theme = safe_openai_call(extract_themes_cached, text_hash, all_text)
+                sampled = data.sample(n=min(15, len(data)), random_state=42)
+
+                text = " ".join(sampled.astype(str))[:5000]
+                text_hash = hash_text(text)
+
+                st.write(f"Processing: {col}")
+
+                summary = safe_openai_call(summarize_text, text_hash, text)
+                theme = safe_openai_call(extract_themes, text_hash, text)
 
                 summary_results[col] = summary
                 theme_results[col] = theme
 
-                time.sleep(1)  # throttle
+                step += 1
+                progress.progress(step / len(text_questions))
 
-        # =============================
-        # PER EVENT LOOP (NO API CALLS)
-        # =============================
+        results = []
+
         for event in event_df["Events"].dropna().unique():
             event_data = event_df[event_df["Events"] == event]
 
-            # Numeric averages
             for col in numeric_questions:
                 if col in event_data.columns:
-                    numeric_series = event_data[col].dropna().apply(extract_leading_number)
-                    avg_val = round(numeric_series.mean(), 2) if not numeric_series.empty else ""
+                    vals = event_data[col].dropna().apply(extract_leading_number)
+                    avg = round(vals.mean(), 2) if not vals.empty else ""
 
                     results.append({
                         "Event": event,
                         "Question": col + "_Average",
-                        "Value": avg_val
+                        "Value": avg
                     })
 
-            # Summaries
             for col in text_questions:
                 if col in summary_results:
                     results.append({
@@ -225,8 +211,6 @@ if not event_df.empty and (selected_events or selected_types or selected_years):
                         "Value": summary_results[col]
                     })
 
-            # Themes
-            for col in text_questions:
                 if col in theme_results:
                     results.append({
                         "Event": event,
@@ -234,13 +218,12 @@ if not event_df.empty and (selected_events or selected_types or selected_years):
                         "Value": theme_results[col]
                     })
 
-    results_df = pd.DataFrame(results)
+    df = pd.DataFrame(results)
 
-    st.write("### 📊 Student Feedback Summary")
-    st.data_editor(results_df, use_container_width=True, hide_index=True)
+    st.data_editor(df, use_container_width=True, hide_index=True)
 
     st.write("### 📝 Raw Feedback")
     st.dataframe(event_df, use_container_width=True)
 
 else:
-    st.info("ℹ️ Please select at least one filter to view results.")
+    st.info("ℹ️ Select at least one filter to begin.")
