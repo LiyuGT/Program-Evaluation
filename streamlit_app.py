@@ -15,7 +15,10 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 # ============ PIN LOCK ============
-APP_PIN = st.secrets.get("APP_PIN", "1234")  # fallback = 1234 if not set in secrets
+try:
+    APP_PIN = st.secrets["APP_PIN"]
+except:
+    APP_PIN = "1234"  # fallback = 1234 if not set in secrets
 
 
 if "authenticated" not in st.session_state:
