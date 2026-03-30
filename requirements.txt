@@ -1,5 +1,5 @@
 streamlit
-openai
+openai>=1.0.0
 openpyxl
 altair==5.5.0
 annotated-types==0.7.0
