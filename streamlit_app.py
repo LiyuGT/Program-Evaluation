@@ -48,6 +48,7 @@ table_df = pd.DataFrame([record["fields"] for record in records])
 
 
 # ============ FUNCTIONS ============
+@st.cache_data
 def summarize_text_one_sentence(text, max_tokens=80):
    if not text or not str(text).strip():
        return ""
@@ -62,7 +63,7 @@ def summarize_text_one_sentence(text, max_tokens=80):
    )
    return response.choices[0].message.content.strip()
 
-
+@st.cache_data
 def extract_themes_with_counts(text, max_tokens=200):
    if not text or not str(text).strip():
        return ""
