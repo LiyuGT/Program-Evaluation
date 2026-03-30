@@ -51,12 +51,13 @@ import openai
 import time  # for retry delays
 
 # Example of handling rate limits safely
+# Example of handling rate limits safely
 def safe_openai_call(func, *args, retries=3, delay=5, **kwargs):
     """Call OpenAI API with automatic retry on rate limit."""
     for i in range(retries):
         try:
             return func(*args, **kwargs)
-        except openai.error.RateLimitError:  # works in runtime
+        except openai.RateLimitError:  # <- change here
             if i < retries - 1:
                 time.sleep(delay)
             else:
